@@ -1,0 +1,113 @@
+version: '3'
+
+services:
+
+  #
+  # restful 后台
+  #
+  restful_war:
+    build:
+      context: ./restful
+      dockerfile: Dockerfile
+    image: docker-registry.localhost.com/neoway/washcloud-restful:1.0
+    restart: always
+    volumes:
+      #- /etc/localtime:/etc/localtime:ro
+      - rest_war_vol:/usr/local/tomcat/webapps
+
+  restful_tomcat:
+    image: tomcat:8.5.31-jre8
+    restart: always
+    depends_on:
+      - restful_war
+    ports:
+      - 9696:8080
+    environment:
+      JAVA_OPTS: -Dfile.encoding=UTF8 -Duser.timezone=GMT+08 -Dspring.profiles.active=development-docker
+    volumes:
+      #- /etc/localtime:/etc/localtime:ro
+      - rest_war_vol:/usr/local/tomcat/webapps
+      #- ./docker-release/restful/logfiles:/usr/local/tomcat/logs
+    networks:
+     - comnet
+     - washnet
+     - default
+
+
+  #
+  # mqtt access 后台
+  #
+  mqttaccess_war:
+    build:
+      context: ./mqttaccess
+      dockerfile: Dockerfile
+    image: docker-registry.localhost.com/neoway/washcloud-mqttaccess:1.0
+    restart: always
+    volumes:
+      #- /etc/localtime:/etc/localtime:ro
+      - mqtt_war_vol:/usr/local/tomcat/webapps
+
+  mqttaccess_tomcat:
+    image: tomcat:8.5.31-jre8
+    restart: always
+    depends_on:
+      - mqttaccess_war
+    ports:
+      - 20880:8080
+    environment:
+      JAVA_OPTS: -Dfile.encoding=UTF8 -Duser.timezone=GMT+08 -Dspring.profiles.active=development-docker
+    volumes:
+      #- /etc/localtime:/etc/localtime:ro
+      - mqtt_war_vol:/usr/local/tomcat/webapps
+      #- ./docker-release/mqttaccess/logfiles:/usr/local/tomcat/logs
+    networks:
+     - comnet
+     - washnet
+     - default
+
+
+  #
+  # protocal_rest_api 后台
+  #
+  protocal_api_war:
+    build:
+      context: ./protocal_rest_api
+      dockerfile: Dockerfile
+    image: docker-registry.localhost.com/neoway/washcloud-protocalapi:1.0
+    restart: always
+    volumes:
+      #- /etc/localtime:/etc/localtime:ro
+      - prot_api_war_vol:/usr/local/tomcat/webapps
+
+  protocal_api_tomcat:
+    image: tomcat:8.5.31-jre8
+    restart: always
+    depends_on:
+      - protocal_api_war
+    ports:
+      - 9797:8080
+    environment:
+      JAVA_OPTS: -Dfile.encoding=UTF8 -Duser.timezone=GMT+08 -Dspring.profiles.active=development-docker
+    volumes:
+      #- /etc/localtime:/etc/localtime:ro
+      - prot_api_war_vol:/usr/local/tomcat/webapps
+      #- ./docker-release/mqttaccess/logfiles:/usr/local/tomcat/logs
+    networks:
+     - comnet
+     - washnet
+     - default
+
+volumes:
+  rest_war_vol:
+  mqtt_war_vol:
+  prot_api_war_vol:
+
+networks:
+  default:
+  washnet:
+    external: true
+  comnet:
+    external: true
+
+
+
