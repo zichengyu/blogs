@@ -23,6 +23,11 @@
 -Xloggc:/tmp/gc.log
 -XX:+HeapDumpOnOutOfMemoryError 内存溢出时dump出内存信息
 -XX:HeapDumpPath=/tmp/heapdump.hprof dump文件位置
+-XX:InitiatingHeapOccupancyPercent 堆占用了多少比例的时候触发GC，就即触发标记周期的 Java 堆占用率阈值。默认占用率是整个 Java 堆的 45%
+-XX:PrintGCDetails 打印GC详细信息
+-XX:PrintGCTimeStamps 打印gc时间戳
+-XX:PrintGCDataStamps 打印gc时间戳
+-Xloggc:gc.log 将日志输出到文件xx
 ```
 
 
@@ -170,6 +175,21 @@ String类重写了hashCode()方法，只要内容相等，则调用hashCode返�
 private void writeObject(java.io.ObjectOutputStream s)
 private void readObject(java.io.ObjectInputStream s)
 使不能被序列化的参数被重新序列化(使transient修饰的关键字，重新上述方法可绕过)
+```
+##### java动态代理和Cglib
+
+```
+Cglib：
+    是继承的方式，选择覆盖父类的方法
+    对目标类没有任何的要求
+    效率和性能更高、底层没用到反射
+    目标代理类不能有final方法，自动忽略final修饰的方法
+jdk：
+    采用实现的方式，必须要求代理的目标对象一定要实现一个接口
+    对用户的依赖性更强，调用那个也更复杂
+    生成逻辑较为简单、执行效率比较低，每次都要用哪个反射
+   
+思想：都是通过生成字节码，重组成一个新的类
 ```
 
 
