@@ -55,3 +55,12 @@ slave端每隔一秒检测是否自己是另外一个实例的从节点，是的
 
 ```
 
+- 安装和自启动
+```
+根目录：make
+进入src：make install
+建立配置文件：touch /etc/redis/redis.conf
+开机启动：vim /etc/rc.local
+增加：/usr/local/bin/redis-server /etc/redis/redis.conf
+```
+
