@@ -20,14 +20,11 @@
 -XX:+PrintTenuringDistribution 查看每次minor GC后新的存活周期的阈值
 -XX:+PrintGCDetails 打印GC详细信息
 -XX:+PrintGCDateStamps 打印GC时间 
+-XX:PrintGCTimeStamps 打印gc时间戳
 -Xloggc:/tmp/gc.log
 -XX:+HeapDumpOnOutOfMemoryError 内存溢出时dump出内存信息
 -XX:HeapDumpPath=/tmp/heapdump.hprof dump文件位置
 -XX:InitiatingHeapOccupancyPercent 堆占用了多少比例的时候触发GC，就即触发标记周期的 Java 堆占用率阈值。默认占用率是整个 Java 堆的 45%
--XX:PrintGCDetails 打印GC详细信息
--XX:PrintGCTimeStamps 打印gc时间戳
--XX:PrintGCDataStamps 打印gc时间戳
--Xloggc:gc.log 将日志输出到文件xx
 ```
 
 
@@ -191,6 +188,14 @@ jdk：
    
 思想：都是通过生成字节码，重组成一个新的类
 ```
+
+##### 随机数获取
+
+```
+Random 在线程并发的时候会有性能问题以及可能会产生相同的随机数
+ThreadLocalRandom.getProbe 可以解决这个问题，并且性能要比 Random 高
+```
+
 
 
 
