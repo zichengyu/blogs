@@ -143,7 +143,7 @@ AbstractServerPredicate：
 
 该抽象类还是比较合格的，提供不少“工具”可以供给子类直接使用，比如这随机选择、轮询选择等等。下面是它的继承图谱：
 
-![img](https://ask.qcloudimg.com/http-save/7035425/o21wjnk5kx.png?imageView2/2/w/1620)![img](https://csdnimg.cn/release/mp/img/uploading.4e448015.gif)转存失败重新上传取消![img](https://ask.qcloudimg.com/http-save/7035425/o21wjnk5kx.png?imageView2/2/w/1620)![img](https://csdnimg.cn/release/mp/img/uploading.4e448015.gif)转存失败重新上传取消![img](https://ask.qcloudimg.com/http-save/7035425/o21wjnk5kx.png?imageView2/2/w/1620)![img](https://csdnimg.cn/release/mp/img/uploading.4e448015.gif)转存失败重新上传取消![img](https://ask.qcloudimg.com/http-save/7035425/o21wjnk5kx.png?imageView2/2/w/1620)![点击并拖拽以移动](data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==)
+![点击并拖拽以移动](https://gitee.com/seeks/blogs/blob/master/images/ribbo_predicate.png)
 
 ------
 
@@ -159,7 +159,7 @@ ZoneAffinityPredicate
 
 它有且仅有一个方法，就是断言方法本身。
 
-```
+```java
 public class ZoneAffinityPredicate extends AbstractServerPredicate {
 
 	//不陌生把：这就是DeploymentContext部署上下文参数
@@ -189,7 +189,7 @@ public class ZoneAffinityPredicate extends AbstractServerPredicate {
 
 代码示例
 
-```
+```java
 @Test
 public void fun1() throws InterruptedException {
     // 准备一批服务器
@@ -232,7 +232,7 @@ private Server createServer(String zone, int index) {
 
 运行程序，控制台打印：
 
-```
+```java
 区域：华北，序号是：1
 区域：华北，序号是：2
 区域：华北，序号是：3
@@ -261,7 +261,7 @@ ZoneAvoidancePredicate
 
 成员属性
 
-```
+```java
 public class ZoneAvoidancePredicate extends  AbstractServerPredicate {
 
     private volatile DynamicDoubleProperty triggeringLoad = new DynamicDoubleProperty("ZoneAwareNIWSDiscoveryLoadBalancer.triggeringLoadPerServerThreshold", 0.2d);
@@ -281,7 +281,7 @@ public class ZoneAvoidancePredicate extends  AbstractServerPredicate {
 
 断言方法
 
-```
+```java
 ZoneAvoidancePredicate：
 
     @Override
@@ -320,7 +320,7 @@ AvailabilityPredicate
 
 过滤逻辑
 
-```
+```java
 AvailabilityPredicate：
 
 	// 平大难逻辑在shouldSkipServer()方法上
@@ -345,27 +345,10 @@ AvailabilityPredicate：
 
 由此可见，它主要判断Server的两项内容：
 
-1. ```
-   isCircuitBreakerTripped()
-   ```
-
-   即断路器是否在生效中
-
+1. `isCircuitBreakerTripped()`即断路器是否在生效中
    1. 默认断路器生效中就会忽略此Server。但是你也可以配置`niws.loadbalancer.availabilityFilteringRule.filterCircuitTripped=false`来关闭此时对断路器的检查， 当然默认它是true（不建议你改它）
-
-2. 该Server的并发请求数
-
-   ```
-   activeRequestsCount
-   ```
-
-   大于阈值，默认值非常大：
-
-   ```
-   Integer.MAX_VALUE
-   ```
-
-   ，可有如下配置方式：
+   
+2. 该Server的并发请求数`activeRequestsCount`大于阈值，默认值非常大：`Integer.MAX_VALUE`，可有如下配置方式：
 
    1. 通用配置`niws.loadbalancer.availabilityFilteringRule.activeConnectionsLimit=10000`（建议根据你的机器配置和压测结果，选择一个合适的值）
    2. 根据具体ClientName配置：`.ribbon.ActiveConnectionsLimit = xxx`（这里有个坑爹的地方：此处的ActiveXXX的A是大写，其它地方均是小写哦~）
@@ -380,7 +363,7 @@ CompositePredicate
 
 成员属性
 
-```
+```java
 public class CompositePredicate extends AbstractServerPredicate {
 
 	private AbstractServerPredicate delegate;
@@ -409,7 +392,7 @@ public class CompositePredicate extends AbstractServerPredicate {
 
 我们`List`是经过抽象父类的`getEligibleServers()`完成过滤的，因此本类“加强”此逻辑的话，仅需复写此方法即可：
 
-```
+```java
 CompositePredicate：
 
 	// 从主Predicate获取**过滤后**的服务器，如果过滤后的服务器的数量还不够
@@ -457,7 +440,7 @@ CompositePredicate：
 
 代码示例
 
-```
+```java
 @Test
 public void fun7() {
     // 准备一批服务器
@@ -506,7 +489,7 @@ public void fun7() {
 
 运行程序，控制它打印：
 
-```
+```java
 [www.baidu华北.com:6, www.baidu华北.com:7, www.baidu华北.com:8, www.baidu华北.com:9]
 ```
 
