@@ -136,7 +136,7 @@ AbstractServerPredicate：
 
 该抽象类还是比较合格的，提供不少“工具”可以供给子类直接使用，比如这随机选择、轮询选择等等。下面是它的继承图谱：
 
-![点击并拖拽以移动](https://gitee.com/seeks/blogs/blob/master/images/ribbo_predicate.png)
+![ribbo_predicate](https://gitee.com/seeks/blogs/blob/master/images/ribbo_predicate.png)
 
 ------
 
