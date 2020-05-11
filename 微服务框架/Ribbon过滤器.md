@@ -24,8 +24,6 @@ public class PredicateKey {
 }
 ```
 
-![点击并拖拽以移动](data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==)
-
 它是一个不可变对象，代表这一个断言key。`PredicateKey`用于断言`AbstractServerPredicate`的入参：`boolean apply(PredicateKey input)`。
 
 ------
@@ -59,8 +57,6 @@ public abstract class AbstractServerPredicate implements Predicate<PredicateKey>
 }
 ```
 
-![点击并拖拽以移动](data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==)
-
 - `rule`：负载均衡器LoadBalancer规则：能从其获取到`ILoadBalancer`，从而得到一个对应的`LoadBalancerStats`实例
 - `lbStats`：`LoadBalancer`状态信息。可以通过构造器指定/set方法指定，若没有指定的话将会从IRule里拿
 - `random`：随机数。当过滤后还剩多台Server将从中随机获取
@@ -86,8 +82,6 @@ AbstractServerPredicate：
 		return (PredicateKey input) -> p.apply(input.getServer());
 	}
 ```
-
-![点击并拖拽以移动](data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==)
 
 ------
 
@@ -117,10 +111,9 @@ AbstractServerPredicate：
 	public List<Server> getEligibleServers(List<Server> servers, Object loadBalancerKey) { ... }
 ```
 
-![点击并拖拽以移动](data:image/gif;base64,R0lGODlhAQABAPABAP///wAAACH5BAEKAAAALAAAAAABAAEAAAICRAEAOw==)
+`getEligibleServers`方法内部调用断言方法`Predicate#apply(PredicateKey)`完成Server的过滤，它属于`AbstractServerPredicate`的核心，因为apply方法在此处是唯一调用处，因此该方法重要。另外，需要注意的是apply方法（具体的过滤逻辑）在本抽象类是木有提供实现的，全在子类身上。
 
 ```java
-getEligibleServers方法内部调用断言方法Predicate#apply(PredicateKey)完成Server的过滤，它属于AbstractServerPredicate的核心，因为apply方法在此处是唯一调用处，因此该方法重要。另外，需要注意的是apply方法（具体的过滤逻辑）在本抽象类是木有提供实现的，全在子类身上。
 AbstractServerPredicate：
 
 	// 它是轮询算法的实现。轮询算法，下面会有应用
