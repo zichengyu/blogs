@@ -1,0 +1,12 @@
+##### AbstractServerPredicate
+```
+AbstractServerPredicate，它的作用就是在众多Server的列表中，通过一定的过滤策略，T除不合格的Server，留下来合格的Server列表，进而供以选择。
+
+负载均衡策略的核心之一就是对已知的服务列表进行过滤，留下一堆合格的Server进而按照一定规则进行choose选择
+
+CompositePredicate：组合模式，如果主的Predicate产生的过滤服务器太少，它将一个接一个地尝试fallback的Predicate，直到过滤服务器的数量超过一定数量的阈值或百分比阈值。
+AvailabilityPredicate：主要是对服务的可用性进行过滤（过滤掉不可用的服务器）
+ZoneAvoidancePredicate：当某个zone糟糕到统计达到了threshold阈值，那么就会过滤掉这个zone里面所有的Server们，ZoneAvoidanceRule就是基于此断言器来实现服务器过滤的，对应的负载均衡器有ZoneAwareLoadBalancer，它是SpringCloud下默认的负载均衡器。
+ZoneAffinityPredicate：选取指定zone区域内的Server，言外之意就是会过滤掉其它区域的Server
+
+```
