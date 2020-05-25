@@ -1,4 +1,4 @@
-##### 缓存
+##### [MyBatis缓存](https://gitee.com/seeks/blogs/blob/master/images/mybatis%E6%9F%A5%E8%AF%A2%E7%BC%93%E5%AD%98%E6%B5%81%E7%A8%8B.png)
 
 ```
 一级缓存：
@@ -25,9 +25,9 @@ CachingExecutor对于查询请求，会判断二级缓存是否有缓存结果�
 ```
 继承了抽象类 BaseExecutor
 
-SIMPLE:默认执行器；每执行一次update或select，就开启一个Statement 对象，用 完立刻关闭 Statement 对象。
-BATCH:执行 update或select，以sql作为key查找Statement对象存在就使用，不存在就创建，用完后，不关闭Statement对象，而是放置于 Map 内， 供下一次使用。简言之，就是重复使用 Statement 对象。
-REUSE：执行update(没有select,JDBC批处理不支持select)将所有sql都添加到批处理中(addBatch()),等待统一执行(executeBatch()),它缓存了多个Statement对象，每个Statement对象都是addBatch()完毕后,等待逐一执行executeBatch()批处理.与JDBC批处理相同。
+SIMPLE:默认执行器;每执行一次update或select,就开启一个Statement对象,用 完立刻关闭 Statement 对象。
+REUSE:执行update或select,以sql作为key查找Statement对象存在就使用,不存在就创建,用完后,不关闭Statement对象,而是放置于 Map 内,供下一次使用。简言之就是重复使用Statement 对象。
+BATCH：执行update(没有select,JDBC批处理不支持select)将所有sql都添加到批处理中(addBatch()),等待统一执行(executeBatch()),它缓存了多个Statement对象，每个Statement对象都是addBatch()完毕后,等待逐一执行executeBatch()批处理.与JDBC批处理相同。
 ```
 
 ##### mybatis动态代理和jdk动态代理
@@ -37,3 +37,34 @@ JDK 动态代理代理，在实现了InvocationHandler的代理类里面，需�
 
 不需要实现类的原因：我们只需要根据接口类型+方法的名称，就可以找到 StatementID了，而唯一要做的一件事情也是这件，所以不需要实现类。在MapperProxy里面直接执行逻辑(也就是执行SQL)就可以。
 ```
+
+##### MyBatis事务
+```
+mubatis事务是在exector中getConnection是打开设置
+```
+
+##### mybatis四大组件
+
+```
+Executor：MyBatis 执行器，是 MyBatis 调度的核心，负责 SQL 语句的生成和查询缓存的维护(CacheExecutor BaseExecutor SimpleExecutor BatchExecutor ReuseExecutor)；Executor是openSession()的时候创建的
+
+StatementHandler: 封装了JDBC Statement操作,负责对JDBC statement的操作,如设置参数、将Statement结果集转换成List集合；StatementHandler 是 SimpleExecutor.doQuery()创建的
+
+ParameterHandler: 把用户传递的参数转换成JDBC Statement所需要的参数
+
+ResultSetHandler: 把JDBC返回的ResultSet结果集对象转换成List类型的集合
+```
+
+##### mybatis-spring
+
+```
+MapperScannerConfigurer实现了BeanDefinitionRegistryPostProcessor接口,BeanDefinitionRegistryPostProcessor是BeanFactoryPostProcessor的子类,可以通过编码的方式修改、新增或者删除某些 Bean 的定义。processBeanDefinitions方法里面,在注册beanDefinitions的时候,BeanClass被改为MapperFactoryBean
+
+MapperFactoryBean继承了SqlSessionDaoSupport,可以拿到SqlSessionTemplate。
+MapperFactoryBean实现了FactoryBean，getObject()可以通过sqlsession拿到mapper的代理对象
+
+SqlSessionTemplate:Spring中SqlSession的替代品,是线程安全,通过代理的方式调用DefaultSqlSession的方法
+SqlSessionDaoSupport:用于获取SqlSessionTemplate，只要继承它即可
+MapperFactoryBean:注册到IOC容器中替换接口类,继承了SqlSessionDaoSupport用来获取SqlSessionTemplate,因为注入接口的时候,就会调用它的getObject()方法
+```
+
