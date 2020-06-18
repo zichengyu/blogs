@@ -82,7 +82,7 @@ netty处理：不是一个完整的数据包,则解析失败,将这块数据包�
 ##### pipeline结构
 
 ```
-链式结构，首节点HeadContext，尾结点TailContext,中间就是一些列handler，读数据时从HeadContext到TailContext，写数据时从TailContext到HeadContext
+链式结构，首节点HeadContext，尾结点TailContext,中间就是一系列handler，读数据时从HeadContext到TailContext，写数据时从TailContext到HeadContext
 ```
 ##### netty总体设计
 
@@ -95,7 +95,7 @@ netty处理：不是一个完整的数据包,则解析失败,将这块数据包�
 ##### Netty 定位
 
 ```
-A、作为开源码框架的底层框架（TCP通信):SpringBoot内置的容器(Tomcat/Jerry)、Zookeper数据交互、Dubbo多协议RPC的支持
+A、作为开源码框架的底层框架(TCP通信):SpringBoot内置的容器(Tomcat/Jerry)、Zookeper数据交互、Dubbo多协议RPC的支持
 B、直接做服务器(消息推送服务、游戏后台)
 ```
 ##### Netty 中大文件上传的那个handler是怎么做到防止内存撑爆的
