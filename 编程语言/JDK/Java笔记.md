@@ -168,10 +168,16 @@ String类重写了hashCode()方法，只要内容相等，则调用hashCode返�
 ##### 序列化
 
 ```
-序列化和反序列化的时候会通过反射调用对象类的下列方法
-private void writeObject(java.io.ObjectOutputStream s)
-private void readObject(java.io.ObjectInputStream s)
-使不能被序列化的参数被重新序列化(使transient修饰的关键字，重新上述方法可绕过)
+1. Java 序列化只是针对对象的状态进行保存，至于对象中的方法，序列化不关心
+2. 当一个父类实现了序列化，那么子类会自动实现序列化，不需要显示实现序列化接口
+3. 当一个对象的实例变量引用了其他对象，序列化这个对象的时候会自动把引用的对象也进行序列化（实现深度克隆）
+4. 当某个字段被申明为transient后，默认的序列化机制会忽略这个字段
+5. 被申明为 transient的字段，如果需要序列化，可以添加两个私有方法：writeObject 和readObject
+
+问题：
+1、Java 序列化机制是Java内部的一种对象编解码技术，无法跨语言使用
+2、Java 序列化后的码流太大
+3、序列化性能差(CPU 资源占用高)
 ```
 ##### java动态代理和Cglib
 
@@ -196,6 +202,17 @@ Random 在线程并发的时候会有性能问题以及可能会产生相同的�
 ThreadLocalRandom.getProbe 可以解决这个问题，并且性能要比 Random 高
 ```
 
+##### [SPI(service provider interface)](https://github.com/yu757371316/blogs/blob/master/images/JDK%E4%B8%ADSPI%E6%9C%BA%E5%88%B6.png)
+```
+JDK 内置的一种服务提供发现机制。目前市面上有很多框架都是用它来做服务的扩展发现。简单来说，它是一种动态替换发现的机制。举个简单的例子，我们想在运行时动态给它添加实现，你只需要添加一个实现，然后把新的实现描述给 JDK 知道就行了。的如 JDBC、日志框架都有用到
+需要遵循的标准:
+1、需要在 classpath下创建一个目录，该目录命名必须是：META-INF/service
+2、在该目录下创建一个properties文件，该文件需要满足以下几个条件
+a、文件名必须是扩展的接口的全路径名称
+b、文件内部描述的是该扩展接口的所有实现类
+c、文件的编码格式是 UTF-8
+3. 通过 java.util.ServiceLoader 的加载机制来发现
+```
 
 
 

@@ -143,3 +143,11 @@ bean设置为lazy-init=false时，则让容器在解析bean定义时就触发注
 原理：封装DataSource，对DataSource代理,DataSource包含了jdbc的Connection
 步骤：加载驱动、关闭自动提交、创建Connection、创建Statement、执行Statement、获取结果、commit/rollback、关闭各种资源
 ```
+##### Spring 的标签扩展
+
+```
+在 spring 中定义了两个接口
+NamespaceHandler:注册一堆BeanDefinitionParser，利用他们来进行解析
+BeanDefinitionParser:用于解析每个 element 的内容
+Spring 默认会加载jar包下的META-INF/spring.handlers文件寻找对应的 NamespaceHandler。
+```
