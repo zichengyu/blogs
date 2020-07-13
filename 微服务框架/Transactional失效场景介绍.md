@@ -3,10 +3,6 @@
 Transactional注解标注方法修饰符为非public时，@Transactional注解将会不起作用。例如以下代码。
 定义一个错误的@Transactional标注实现，修饰一个默认访问符的方法
 ```java
-/**
- * @author zhoujy
- * @date 2018年12月06日
- **/
 @Component
 public class TestServiceImpl {
     @Resource
@@ -57,10 +53,6 @@ public class DemoApplicationTests {
 设置一个内部调用
 
 ```java
-/**
- * @author zhoujy
- * @date 2018年12月06日
- **/
 @Component
 public class TestServiceImpl implements TestService {
     @Resource
@@ -110,10 +102,6 @@ public class DemoApplicationTests {
 事务方法内部捕捉了异常，没有抛出新的异常，导致事务操作不会进行回滚。示例代码如下。
 
 ```java
-/**
- * @author zhoujy
- * @date 2018年12月06日
- **/
 @Component
 public class TestServiceImpl implements TestService {
     @Resource
@@ -234,10 +222,6 @@ protected TransactionAttribute computeTransactionAttribute(Method method, Class<
 创建了代理对象，insertTestWrongModifier就会开启事务吗？答案是不会。
 
 ```java
-/**
- * @author zhoujy
- * @date 2018年12月06日
- **/
 @Component
 public class TestServiceImpl implements TestService {
     @Resource
@@ -288,10 +272,6 @@ List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(me
 其实我们可以这样玩，内部调用也能实现开启事务，代码如下。
 
 ```java
-/**
- * @author zhoujy
- * @date 2018年12月06日
- **/
 @Component
 public class TestServiceImpl implements TestService {
     @Resource
