@@ -11,3 +11,7 @@ ConversionService 配置参数类型的转换
 ```
 如果一个配置类只配置@ConfigurationProperties注解，而没有使用@Component，那么在IOC容器中是获取不到properties 配置文件转化的bean。说白了 @EnableConfigurationProperties 相当于把使用 @ConfigurationProperties 的类进行了一次注入
 ```
+- FilterRegistrationBean
+```
+通过FilterRegistrationBean实例注册filter，可以指定当前filter过滤的规则和优先级
+```
