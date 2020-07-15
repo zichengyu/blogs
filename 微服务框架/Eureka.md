@@ -56,7 +56,7 @@ Eureka Server 各个节点都是平等的，几个节点挂掉不会影响正常
 9、Eureka Client 获取到目标服务器信息，发起服务调用
 10、Eureka Client 程序关闭时向 Eureka Server 发送取消请求，Eureka Server 将实例从注册表中删除
 ```
-##### Eureka Server三级缓存
+##### [Eureka Server三级缓存](https://github.com/yu757371316/blogs/blob/master/images/EurekaServer%E4%B8%89%E7%BA%A7%E7%BC%93%E5%AD%98.jpeg)
 
 ```
 Eureka Server存在三个变量：保存服务注册信息，默认情况下定时任务每30s将readWriteCacheMap同步至readOnlyCacheMap，每60s清理超过90s未续约的节点，EurekaClient每30s从readOnlyCacheMap更新服务注册信息，而UI则从registry更新服务注册信息。
