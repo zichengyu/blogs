@@ -56,3 +56,18 @@ Eureka Server 各个节点都是平等的，几个节点挂掉不会影响正常
 9、Eureka Client 获取到目标服务器信息，发起服务调用
 10、Eureka Client 程序关闭时向 Eureka Server 发送取消请求，Eureka Server 将实例从注册表中删除
 ```
+##### Eureka Server三级缓存
+
+```
+Eureka Server存在三个变量：保存服务注册信息，默认情况下定时任务每30s将readWriteCacheMap同步至readOnlyCacheMap，每60s清理超过90s未续约的节点，EurekaClient每30s从readOnlyCacheMap更新服务注册信息，而UI则从registry更新服务注册信息。
+registry：实时更新，类AbstractInstanceRegistry成员变量，UI端请求的是这里的服务注册信息
+readWriteCacheMap：实时更新，类ResponseCacheImpl成员变量，缓存时间180秒
+readOnlyCacheMap：周期更新，类ResponseCacheImpl成员变量，默认每30s从readWriteCacheMap更新，Eurekaclient默认从这里更新服务注册信息，可配置直接从readWriteCacheMap更新
+```
+##### Eureka Client二级缓存
+
+```
+服务提供者和服务消费者，作为服务消费者一般配合Ribbon或Feign（Feign内部使用Ribbon）使用。EurekaClient启动后，作为服务提供者立即向Server注册，默认情况下每30s续约(renew)；作为服务消费者立即向Server全量更新服务注册信息，默认情况下每30s增量更新服务注册信息
+localRegionApps：周期更新，类DiscoveryClient成员变量，Eureka Client保存服务注册信息，启动后立即向Server全量更新，默认每30s增量更新
+upServerListZoneMap：周期更新，类LoadBalancerStats成员变量，Ribbon保存使用且状态为UP的服务注册信息，启动后延时1s向Client更新，默认每30s更新
+```
