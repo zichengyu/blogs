@@ -67,4 +67,13 @@ SqlSessionTemplate:Spring中SqlSession的替代品,是线程安全,通过代理�
 SqlSessionDaoSupport:用于获取SqlSessionTemplate，只要继承它即可
 MapperFactoryBean:注册到IOC容器中替换接口类,继承了SqlSessionDaoSupport用来获取SqlSessionTemplate,因为注入接口的时候,就会调用它的getObject()方法
 ```
+- MyBatis中的#和$有什么区别
 
+```
+#会将传入的内容当做字符串,而$会直接将传入值拼接在sql语句中.
+所以#可以在一定程度上预防sql注入攻击.
+```
+- sql优化步骤查询
+```
+EXPLAIN和SHOW WARNINGS;
+```
