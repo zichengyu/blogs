@@ -1,3 +1,52 @@
+##### 调优
+
+```
+jvm：调优、关闭偏向锁特性、滚动GC日志
+锁：为了避免锁带来的延迟(上下文切换)、利用CAS原语将RocketMQ核心链路无锁化
+内存：缓存(当后台内存回收的速度不及分配内存的速度时，会进入直接回收(DirectReclaim)，应用程序会自旋等待内存回收完毕，产生巨大的延迟vm.extra_free_kbytes)、匿名内存(内核也会回收匿名内存页、匿名内存页被换出后下一次访问会产生文件IO、导致延迟vm.swappiness)
+Page Cache：将数据文件映射到内存中，写消息的时候首先写入Page Cache，并通过异步刷盘的模式将消息持久化(同时也支持同步刷盘)，消息可以直接从Page Cache中读取
+降级：丢卒保车，二八原则实践
+限流：计数器、滑动窗口、令牌桶、漏桶
+熔断：借鉴Hystrix思路，中间件团队自研了一套消息引擎熔断机制
+高可用：Master/Slave结构、采用主备同步复制的方式避免故障时消息的丢失、通过维护一个递增的全局唯一SequenceID来保证数据强一致。同时引入故障自动恢复机制以降低故障恢复时间，提升系统的可用性、Master和Slave任一节点故障时，其它节点能够在秒级时间内切换到单主状态继续提供服务
+```
+
+
+##### 角色
+
+```
+topic：主题，默认的队列数量是4个
+生产者：三种方式发送消息：同步、异步和单向.(单向发送是指只负责发送消息而不等待服务器回应且没有回调函数触发，适用于某些耗时非常短但对可靠性要求并不高的场景，例如日志收集。)
+消费者:拉取型消费者和推送型消费者(从实现上看还是从消息服务器中拉取消息，不同于Pull的是Push首先要注册消费监听器，当监听器处触发后才开始消费消息。)，定时向所有的broker发送心跳和订阅关系
+Broker：Broker 有Master和Slave两种类型，Master既可以写又可以读，Slave 不可以写只可以读。从物理结构上看Broker的集群部署方式有四种：单Master、多Master、多Master多Slave(同步刷盘)、多Master多Slave(异步刷盘)，每个broker与所有的nameserver保持长连接及心跳，并会定时将Topic信息注册到NameServer
+NameServer：几乎无状态的，可以横向扩展，节点之间相互之间无通信，通过部署多台机器来标记自己是一个伪集群。每个 Broker 在启动的时候会到NameServer注册，Producer在发送消息前会根据 Topic到NameServer获取到Broker的路由信息，Consumer也会定时获取Topic的路由信息。所以从功能上看应该是和ZooKeeper差不多
+消息队列：一个 Topic下可以设置多个消息队列，发送消息时RocketMQ会轮询该Topic下的所有队列将消息发出去
+消息消费模式：集群消费（Clustering）和广播消费（Broadcasting）。默认是集群消费，该模式下一个消费者集群共同消费一个主题的多个队列，一个队列只会被一个消费者消费，如果某个消费者挂掉，分组内其它消费者会接替挂掉的消费者继续消费。而广播消费消息会发给消费者组中的每一个消费者进行消费
+消息顺序：顺序消费（Orderly）和并行消费（Concurrently）。顺序消费表示消息消费的顺序同生产者为每个消息队列发送的顺序一致，所以如果正在处理全局顺序是强制性的场景，需要确保使用的主题只有一个消息队列。并行消费不再保证消息顺序，消费的最大并行数量受每个消费者客户端指定的线程池限制。
+```
+##### 一次完整的通
+```
+Producer与NameServer集群中的其中一个节点(随机选择)建立长连接,定期从NameServer获取Topic路由信息,并向提供Topic服务的Broker Master建立长连接,且定时向Broker发送心跳。
+
+Producer只能将消息发送到Brokermaster,但是Consumer则不一样,,它同时和提供Topic服务的Master和Slave建立长连接,既可以从Broker Master 订阅消息,也可以从Broker Slave订阅消息。
+
+NameServer：启动初始化配置、创建NamesrvController实例，并开启两个定时任务(每隔10s扫描移除处于不激活的Broker、每隔10s打印一次KV配置)、启动服务器并监听Broker
+producer：轮训某个Topic下面的所有队列实现发送方的负载均衡
+Broker：进行处理Producer发送消息请求，Consumer消费消息的请求，并且进行消息的持久化，以及HA策略和服务端过滤
+[Consumer](https://gitee.com/seeks/blogs/blob/master/images/Rocket_Consumer.png)：注册消息监听处理器、定时获取NameServer地址以及topic路由信息、定时向所有broker发送心跳和订阅关系、定时清理下线的broker、定时持久化消费进度(集群模式存在broker、广播模式存在本地)、动态调整消费线程池、启动拉服务、启动负载均衡(消费端会通过RebalanceService线程，10秒钟做一次基于Topic下的所有队列负载。)
+
+```
+信流程
+
+
+##### RocketMQ TAG 过滤原理
+
+```
+Tags：过滤实现比较简单，主要是在客户端实现。
+Sql Filter：上传一段自己的java代码到哦broker端过滤
+```
+
+
 ##### [RocketMQ事务消息概要](https://gitee.com/seeks/blogs/blob/master/images/RocketMq%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF%E6%A6%82%E8%A6%81.png)
 
 ```
@@ -89,7 +138,7 @@ MQPushConsumer：同样也是客户端主动拉取消息，但是消息进度是
 多Master多Slave：每个Master配一个Slave，有多对Master-Slave，集群采用同步双写方式，主备都写成功，向应用返回成功；性能比异步集群略低，当前版本主宕备不能自动切换为主
 注意：RocketMQ里面，1台机器只能要么是Master，要么是Slave。这个在初始的机器配置里面，就定死了。不会像kafka那样存在master动态选举的功能。其中Master的broker id = 0，Slave的broker id > 0
 ```
-##### 循序消息
+##### 顺序消息
 ```
 1、保证顺序的消息要发送到同一个messagequeue中(自定义发送策略可实现消息只发送到同一个队列)
 2、一个messagequeue只能被一个消费者消费，这点是由消息队列的分配机制来保证的
@@ -111,5 +160,33 @@ MQPushConsumer：同样也是客户端主动拉取消息，但是消息进度是
 1、所有消费者在设置监听的时候会提供一个回调，业务实现消费回调的时候，只有返回CONSUME_SUCCESS才会热认为消费成功了，异常或RECONSUME_LATER，RocketMQ就会认为这批消息消费失败了
 2、衰减重试：为了保证消息肯定至少被消费一次，消费失败的消息在延迟的某个时间点(默认是10秒,业务可设置)后，再次投递到这个ConsumerGroup。而如果一直这样重复消费都持续失败到一定次数(默认16次),就会投递到DLQ死信队列。应用可以监控死信队列来做人工干预
 3、消费者可以从消息中获取当前消息重试了多少次，超过次数的消息，我们可以存到数据库，以便后期人工干预
+```
 
+##### 消息消费失败时重试的原理
+```
+rocketmq针对每个topic都定义了延迟队列，当消息消费失败时，会发回给broker存入延迟队列中，每个消费者在启动时默认订阅延迟队列，这样消费失败的消息在一段时候后又能够重新消费。延迟时间适合延迟级别一一对应的，延迟时间是随失败次数逐渐增加的，最后一次间隔2小时
+```
+##### 生产者负载均衡
+
+```
+生产者发送时，会自动轮询当前所有可发送的broker，一条消息发送成功，下次换另外一个broker发送，以达到消息平均落到所有的broker上。
+• 尽量不要选择刚刚选择过的broker
+• 不要选择延迟容错内的broker
+这里需要注意一点：假如某个Broker宕机，意味生产者最长需要30秒才能感知到。在这期间会向宕机的Broker发送消息。当一条消息发送到某个Broker失败后，会往该broker自动再重发，假如还是发送失败，则抛出发送失败异常。业务捕获异常，重新发送即可。
+```
+##### 消费者的负载均衡
+```
+consumer在启动的时候会实例化rebalanceImpl，这个类负责消费端的负载均衡
+MqClientInstance里会调用doRebalance()来进行负载均衡；
+consumer负载均衡是指将topicMessageQueue中的消息队列分配到消费者组的具体消费者里去；
+• consumer的负载均衡由rebalanceImpl调用allocateMesasgeQueueStratage.allocate()完成；
+• 每次有新的consumer加入group就会重新做一下负载；
+• 每10秒自动做一次负载；
+策略：
+• 分页模式(随机分配模式)
+• 手动配置模式
+• 指定机房模式
+• 就近机房模式
+• 统一哈希模式
+• 环型模式
 ```
