@@ -24,7 +24,7 @@ NameServer：几乎无状态的，可以横向扩展，节点之间相互之间�
 消息消费模式：集群消费（Clustering）和广播消费（Broadcasting）。默认是集群消费，该模式下一个消费者集群共同消费一个主题的多个队列，一个队列只会被一个消费者消费，如果某个消费者挂掉，分组内其它消费者会接替挂掉的消费者继续消费。而广播消费消息会发给消费者组中的每一个消费者进行消费
 消息顺序：顺序消费（Orderly）和并行消费（Concurrently）。顺序消费表示消息消费的顺序同生产者为每个消息队列发送的顺序一致，所以如果正在处理全局顺序是强制性的场景，需要确保使用的主题只有一个消息队列。并行消费不再保证消息顺序，消费的最大并行数量受每个消费者客户端指定的线程池限制。
 ```
-##### 一次完整的通
+##### 一次完整的通信流程
 ```
 Producer与NameServer集群中的其中一个节点(随机选择)建立长连接,定期从NameServer获取Topic路由信息,并向提供Topic服务的Broker Master建立长连接,且定时向Broker发送心跳。
 
@@ -36,7 +36,31 @@ Broker：进行处理Producer发送消息请求，Consumer消费消息的请求�
 [Consumer](https://gitee.com/seeks/blogs/blob/master/images/Rocket_Consumer.png)：注册消息监听处理器、定时获取NameServer地址以及topic路由信息、定时向所有broker发送心跳和订阅关系、定时清理下线的broker、定时持久化消费进度(集群模式存在broker、广播模式存在本地)、动态调整消费线程池、启动拉服务、启动负载均衡(消费端会通过RebalanceService线程，10秒钟做一次基于Topic下的所有队列负载。)
 
 ```
-信流程
+
+##### [PushConsumer组件之间的交互](https://gitee.com/seeks/blogs/blob/master/images/Rocket_PushConsumer%E7%BB%84%E4%BB%B6%E5%85%B3%E7%B3%BB%E5%9B%BE.png)
+```
+RebalanceService：均衡消息队列服务，负责分配当前 Consumer 可消费的消息队列(MessageQueue);当有新的Consumer的加入或移除、每20S、PushConsumer启动时，都会重新分配消息队列。
+PullMessageService：拉取消息服务，不断不断不断从 Broker 拉取消息，并提交消费任务到 ConsumeMessageService
+ConsumeMessageService：消费消息服务，不断不断不断消费消息,并处理消费结果。
+RemoteBrokerOffsetStore：Consumer消费进度管理,负责从Broker 获取消费进度，同步消费进度到Broker。定时持久化(每5S)，拉取消息、分配消息队列等等操作，都会进行消费进度持久化
+ProcessQueue ：消息处理队列。
+MQClientInstance：封装对Namesrv,Broker的API调用，提供给Producer、Consumer 使用。
+
+```
+
+##### RocketMQ 刷盘实现
+
+```
+Broker在消息的存取时直接操作的是内存(内存映射文件),这可以提供系统的吞吐量,但是无法避免机器掉电时数据丢失,所以需要持久化到磁盘中。
+刷盘的最终实现都是使用NIO中的 MappedByteBuffer.force() 将映射区的数据写入到磁盘,如果是同步刷盘的话,在Broker把消息写到CommitLog映射区后,就会等待写入完成。
+异步而言，只是唤醒对应的线程，不保证执行的时机
+```
+##### 回溯消费
+
+```
+回溯消费是指Consumer已经消费成功的消息，由于业务上的需求需要重新消费，要支持此功能，Broker在向Consumer投递成功消息后，消息仍然需要保留。并且重新消费一般是按照时间维度。
+RocketMQ支持按照时间回溯消费，时间维度精确到毫秒，可以向前回溯，也可以向后回溯。
+```
 
 
 ##### RocketMQ TAG 过滤原理
@@ -46,15 +70,14 @@ Tags：过滤实现比较简单，主要是在客户端实现。
 Sql Filter：上传一段自己的java代码到哦broker端过滤
 ```
 
-
 ##### [RocketMQ事务消息概要](https://gitee.com/seeks/blogs/blob/master/images/RocketMq%E4%BA%8B%E5%8A%A1%E6%B6%88%E6%81%AF%E6%A6%82%E8%A6%81.png)
 
 ```
 事务消息发送及提交：
-1、发送消（half消息-会将Topic替换为HalfMessage的Topic）
+1、发送消（half消息(半消息-会将Topic替换为HalfMessage的Topic)
 2、broker响应消息写入结果
 3、根据broker响应结果执行本地事务(如果写入失败，此时half消息对业务不可见，本地逻辑也不执行)
-4、根据本地事务状态执行Commit或者Rollback（Commit操作生成消息索引,还原topic，则消息对消费者可见)
+4、根据本地事务状态执行Commit或者Rollback(Commit操作生成消息索引,还原topic，则消息对消费者可见)
 补偿流程：
 1、对没有Commit/Rollback的事务消息(pending状态的消息)，从broker服务端发起一次“回查”
 2、Producer收到回查消息，检查回查消息对应的本地事务的状态，根据本地事务状态，重新Commit或者Rollback
@@ -74,13 +97,15 @@ Sql Filter：上传一段自己的java代码到哦broker端过滤
 ##### 消息的可用性
 
 ```
-刷盘：同步和异步的策略
+刷盘：同步和异步的策略，当选择同步刷盘之后，如果刷盘超时会给返回FLUSH_DISK_TIMEOUT
 主从同步：同步和异步两种模式来进行复制，当然选择同步可以提升可用性，但是消息的发送RT时间会下降10%左右。
 消息发送：
     同步发送：消息发送出去后，producer会等到broker回应后才能继续发送下一个消息
     异步发送：发送方发出数据后，不等接收方发回响应，接着发送下个数据包的通讯方式，但是需要消费方实现callback
     OneWay：发送特点为发送方只负责发送消息，不等待服务器回应且没有回调函数触发，即只发送请求不等待应答.效率最高
+存储：采用混合型的存储结构，即为Broker单个实例下所有的队列共用一个日志数据文件(即为CommitLog)来存储。(RocketMQ采用混合型存储结构的缺点在于，会存在较多的随机读操作，因此读的效率偏低。同时消费消息需要依赖ConsumeQueue，构建该逻辑消费队列需要一定开销。)
 ```
+
 ##### 高性能日志存储
 
 ```
@@ -111,15 +136,22 @@ MQPushConsumer：同样也是客户端主动拉取消息，但是消息进度是
 ##### [重平衡](https://mp.weixin.qq.com/s/8fB-Z5oFPbllp13EcqC9dw)
 
 ```
-1、重平衡定时任务每隔10s定时拉取broker,topic的最新信息
-3、随机(因为消费者客户端启动时会启动一个线程，向所有 broker 发送心跳包)选取当前Topic的一个Broker，获取当前Broker，当前ConsumerGroup的所有机器ID。
+1、重平衡定时任务每隔20s定时拉取broker,topic的最新信息
+3、随机(因为消费者客户端启动时会启动一个线程，向所有broker 发送心跳包)选取当前Topic的一个Broker，获取当前Broker，当前ConsumerGroup的所有机器ID。
 3、然后进行策略分配。
 由于重平衡是定时做的，所以这里有可能会出现某个Queue同时被两个Consumer消费，所以会出现消息重复投递。
 时机：
 1、消费者启动之后
 2、消费者数量发生变更(broker主动通知)
-3、每10秒会触发检查一次rebalance
+3、每20秒会触发检查一次rebalance
 ```
+##### 高可用机制
+```
+Namesrv：启动多个Namesrv,各nameSrv没有任何关系,不进行通信与数据同步。通过Broker循环注册多个Namesrv。Producer、Consumer只需要从Namesrv列表选择一个可连接的进行通信即可
+Broker：启动多个Broker分组形成集群实现高可用。Broker分组 = Master(读写)节点x1+Slave(读)节点xN。分组之间没有任何关系,不进行通信与数据同步。每个分组Master节点不断发送新的CommitLog给Slave节点。Slave节点不断上报本地的CommitLog已经同步到的位置给Master节点。消费进度目前不支持Master/Slave 同步
+
+```
+
 ##### SendResult
 
 ```
@@ -140,6 +172,7 @@ MQPushConsumer：同样也是客户端主动拉取消息，但是消息进度是
 ```
 ##### 顺序消息
 ```
+MessageQueueSelector
 1、保证顺序的消息要发送到同一个messagequeue中(自定义发送策略可实现消息只发送到同一个队列)
 2、一个messagequeue只能被一个消费者消费，这点是由消息队列的分配机制来保证的
 3、一个消费者内部对一个mq的消费要保证是有序的
@@ -164,7 +197,7 @@ MQPushConsumer：同样也是客户端主动拉取消息，但是消息进度是
 
 ##### 消息消费失败时重试的原理
 ```
-rocketmq针对每个topic都定义了延迟队列，当消息消费失败时，会发回给broker存入延迟队列中，每个消费者在启动时默认订阅延迟队列，这样消费失败的消息在一段时候后又能够重新消费。延迟时间适合延迟级别一一对应的，延迟时间是随失败次数逐渐增加的，最后一次间隔2小时
+rocketmq针对每个topic都定义了延迟队列，当消息消费失败时，会发回给broker存入延迟队列中，每个消费者在启动时默认订阅延迟队列，这样消费失败的消息在一段时候后又能够重新消费。延迟时间是和延迟级别一一对应的，延迟时间是随失败次数逐渐增加的，最后一次间隔2小时
 ```
 ##### 生产者负载均衡
 
